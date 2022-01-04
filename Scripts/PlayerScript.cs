@@ -4,41 +4,94 @@ using UnityEngine;
 
 public class PlayerScript : MonoBehaviour
 {
-    [SerializeField] float jumpForce, speed, turnSpeed;
-    float horizontalInput, verticalInput, CheckDistance;
-    [SerializeField] Transform GroundCheck;
-    [SerializeField] LayerMask GroundMask;
-    bool canJump;
+    [SerializeField] float jumpForce, normalSpeed, turnSpeed;
+    float horizontalInput, verticalInput, timeShowBtwJumps, speed, fastSpeed;
     Rigidbody rb;
+    [SerializeField] float jumpAmount, timeBtwJumps;
+
+#region Stomp
+    [SerializeField] float stompDecceleration, MaxHeightBoost;      //Downward and forward force the player applies, stomp decceleration/duration
+    private float stompTimer, stompForce;
+    private bool readyToStomp, groundCollision = true;      //bool to check if the player has pressed the stomp key
+    private Vector3 stomp;
+    [Range(1,10)]             //Range is used to set values using a slider in the inspector on the unity window
+    public float speedMultiplier;           //The speed multiplier for the player based on height
+    public float speedMultiplierHeight;     //The maximum height for effective speed multiplication
+    public float speedDecceleration;
+    public float maxSpeed;
+#endregion
+
     void Awake(){
         rb = GetComponent<Rigidbody>();
     }
     void Start(){
         Cursor.lockState = CursorLockMode.Locked;
+        timeShowBtwJumps = timeBtwJumps;
+        speed = normalSpeed;
     }
     void FixedUpdate(){
-        Vector3 move = transform.forward * verticalInput * speed;
-        rb.velocity = new Vector3(move.x, rb.velocity.y, move.z);
+        //New code starts here
+        if (transform.position.y/4 > MaxHeightBoost && groundCollision == false){
+            stompForce = MaxHeightBoost;
+        } else if (transform.position.y/4 < MaxHeightBoost && groundCollision == false){
+            stompForce = transform.position.y/4;
+        } else{
+            stompForce = 0;
+        }
+        if(readyToStomp){                       //Takes input from Update method
+            stompTimer = stompDecceleration;    
+            readyToStomp = false;
+        }
+        if(stompTimer > 0 && groundCollision == false){
+            stompTimer -= Time.fixedDeltaTime;
+            stomp = Vector3.Normalize(new Vector3(rb.velocity.x, 0, rb.velocity.z)) * stompForce;
+            //The line above adds horizontal force to the player's direction which reduces over time
+            rb.AddForce(new Vector3(0, (-(stompForce)), 0));
+            //The line above adds a downward force which reduces until -10. You can modify the "-10" as you wish
+        } else stomp = Vector3.zero;
+
+        float multiplier = ((speedMultiplier-1) * (transform.position.y/speedMultiplierHeight)) + 1;    //Calculates multiplier based on height above y at 0
+        multiplier = Mathf.Clamp(multiplier, 1f, speedMultiplier);      //Clamps the multiplier so it is not less than 1
+        //New code ends here
+        
+        Vector3 move = transform.forward * verticalInput * speed * multiplier;
+        rb.velocity = new Vector3(move.x, rb.velocity.y, move.z) + stomp;       //Line modification. Added stomp Vector to the initial movement code
+
         transform.Rotate(0, horizontalInput * turnSpeed * verticalInput, 0, Space.World);
-        if (canJump && Input.GetMouseButton(1)){
-            rb.velocity = Vector3.up * jumpForce * Time.deltaTime;
+        if (timeShowBtwJumps <= 0){
+            if (jumpAmount != 0 && Input.GetKey(KeyCode.Space)){
+                groundCollision = false;
+                jumpAmount -= 1;
+                rb.AddForce(Vector3.up * jumpForce);
+                timeShowBtwJumps = timeBtwJumps;
+            }
+        }
+        else
+        {
+            timeShowBtwJumps -= Time.deltaTime;
+        }
+        if (speed > normalSpeed && groundCollision){
+            speed -= speedDecceleration * Time.deltaTime;
         }
     }
     void Update(){
         horizontalInput = Input.GetAxis("Horizontal");
         verticalInput = Input.GetAxis("Vertical");
-        canJump = Physics.CheckSphere(GroundCheck.position, CheckDistance, GroundMask);
-    }
-    private void OnDrawGizmosSelected(){
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(GroundCheck.transform.position, CheckDistance);
-    }
-    void OnCollisionEnter(Collision collider){
-        if (collider.collider.CompareTag("Player")){
-            Explosion(rb.velocity.x, rb.velocity.y, rb.velocity.z, new Vector3(transform.position.x - 10, transform.position.y, transform.position.z));
+
+        if(Input.GetKeyDown(KeyCode.C)){
+            fastSpeed = stompForce;
+            if (speed + fastSpeed < maxSpeed)
+            {
+                speed += fastSpeed;
+            } else{
+                speed = maxSpeed;
+            }
+            readyToStomp = true;            //Uses a bool to register input
         }
     }
-    void Explosion(float a, float b, float c, Vector3 explosionPos){ 
-        rb.AddExplosionForce(Mathf.Sqrt(Mathf.Pow(a, 2) + Mathf.Pow(b, 2) + Mathf.Pow(c, 2)), explosionPos, 500, 1f, ForceMode.Force);
+    void OnCollisionEnter(Collision collider){
+        if (collider.collider.CompareTag("Ground")){
+            groundCollision = true;
+        }
     }
 }
