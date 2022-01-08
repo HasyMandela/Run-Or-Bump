@@ -67,5 +67,7 @@ PrefabInstance:
       propertyPath: m_Name
       value: Type 1 Stone 2 Variant
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5691896684673963730, guid: 1e09aacf6dc2dc94c9e595c556cd68ac, type: 3}
+    - {fileID: -320224295555875101, guid: 1e09aacf6dc2dc94c9e595c556cd68ac, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 1e09aacf6dc2dc94c9e595c556cd68ac, type: 3}
