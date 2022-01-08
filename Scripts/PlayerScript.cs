@@ -1,47 +1,71 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-public class PlayerScript : MonoBehaviour
+using Mirror;
+using Cinemachine;
+public class PlayerScript : NetworkBehaviour
 {
-    [SerializeField] float jumpForce, normalSpeed, turnSpeed;
-    float horizontalInput, verticalInput, timeShowBtwJumps, speed, fastSpeed;
-    Rigidbody rb;
-    [SerializeField] float jumpAmount, timeBtwJumps;
+    [Header("Speed")]
+    [SerializeField] float normalSpeed, turnSpeed;
+    float horizontalInput, verticalInput, speed, fastSpeed;
+    [SerializeField] float maxAddedSpeed;      //The maximum speed added to the player (The speed is determined by the height and so this is the maxiumum height the player can get max speed on)
+    [SerializeField] float maxSpeed;
+    [SerializeField] float cutSpeed;  //This speed will cut between the walk speed and run speed
+    [Range(1,10)]
+    [SerializeField]float momentumBuild; //Use To See How Fast The Player Build Momentum (1 for fastest & 10 for slowest)
 
-#region Stomp
-    [SerializeField] float stompDecceleration, MaxHeightBoost;      //Downward and forward force the player applies, stomp decceleration/duration
+
+    [Header("Jump")]
+    [SerializeField] float jumpAmount, timeBtwJumps;
+    [SerializeField] float jumpForce;
+    float timeShowBtwJumps;
+
+
+    [Header("Stomp")]
     private float stompTimer, stompForce;
     private bool readyToStomp, groundCollision = true;      //bool to check if the player has pressed the stomp key
     private Vector3 stomp;
-    [Range(1,10)]             //Range is used to set values using a slider in the inspector on the unity window
-    public float speedMultiplier;           //The speed multiplier for the player based on height
-    public float speedMultiplierHeight;     //The maximum height for effective speed multiplication
-    public float speedDecceleration;
-    public float maxSpeed;
-#endregion
 
-    void Awake(){
-        rb = GetComponent<Rigidbody>();
-    }
+
+    [Header("Components")]
+    Rigidbody rb;
+    Animator anim;
+    [SerializeField] CinemachineFreeLook cinemachine;
+    
     void Start(){
         Cursor.lockState = CursorLockMode.Locked;
         timeShowBtwJumps = timeBtwJumps;
         speed = normalSpeed;
+        cinemachine.Follow = transform;
+        cinemachine.LookAt = transform;
+
+    }
+    public override void OnStartLocalPlayer()
+    {
+        rb = GetComponent<Rigidbody>();
+        anim = GetComponent<Animator>();
+        cinemachine.m_Priority = 100;
     }
     void FixedUpdate(){
         //New code starts here
-        if (transform.position.y/4 > MaxHeightBoost && groundCollision == false){
-            stompForce = MaxHeightBoost;
-        } else if (transform.position.y/4 < MaxHeightBoost && groundCollision == false){
-            stompForce = transform.position.y/4;
+        //Setting stompForce
+        if (transform.position.y/4 > maxAddedSpeed && groundCollision == false){
+            stompForce = maxAddedSpeed;
+        } else if (transform.position.y/4 < maxAddedSpeed && groundCollision == false){
+            stompForce = transform.position.y/2;
         } else{
             stompForce = 0;
         }
-        if(readyToStomp){                       //Takes input from Update method
-            stompTimer = stompDecceleration;    
+
+
+        //Triggers when the stomp Key is pressed
+        if(readyToStomp){
+            stompTimer = 1;    
             readyToStomp = false;
         }
+
+
+        //Add Stomp Force To The Player
         if(stompTimer > 0 && groundCollision == false){
             stompTimer -= Time.fixedDeltaTime;
             stomp = Vector3.Normalize(new Vector3(rb.velocity.x, 0, rb.velocity.z)) * stompForce;
@@ -50,14 +74,14 @@ public class PlayerScript : MonoBehaviour
             //The line above adds a downward force which reduces until -10. You can modify the "-10" as you wish
         } else stomp = Vector3.zero;
 
-        float multiplier = ((speedMultiplier-1) * (transform.position.y/speedMultiplierHeight)) + 1;    //Calculates multiplier based on height above y at 0
-        multiplier = Mathf.Clamp(multiplier, 1f, speedMultiplier);      //Clamps the multiplier so it is not less than 1
-        //New code ends here
-        
-        Vector3 move = transform.forward * verticalInput * speed * multiplier;
-        rb.velocity = new Vector3(move.x, rb.velocity.y, move.z) + stomp;       //Line modification. Added stomp Vector to the initial movement code
 
+        // Initial Player Movement Code
+        Vector3 move = transform.forward * verticalInput * speed;
+        rb.velocity = new Vector3(move.x, rb.velocity.y, move.z) + stomp;
         transform.Rotate(0, horizontalInput * turnSpeed * verticalInput, 0, Space.World);
+
+        
+        //Jumping Code
         if (timeShowBtwJumps <= 0){
             if (jumpAmount != 0 && Input.GetKey(KeyCode.Space)){
                 groundCollision = false;
@@ -71,14 +95,36 @@ public class PlayerScript : MonoBehaviour
             timeShowBtwJumps -= Time.deltaTime;
         }
         if (speed > normalSpeed && groundCollision){
-            speed -= speedDecceleration * Time.deltaTime;
+            speed -= momentumBuild * Time.deltaTime;
         }
+
+
+        //Check for animation 
+        if (verticalInput == 0){
+            anim.SetBool("Is Running", false);
+            anim.SetBool("Is Walking", false);
+
+        }else if (speed > cutSpeed){
+            anim.SetBool("Is Running", true);
+            anim.SetBool("Is Walking", false);
+        }else if (speed < cutSpeed){
+            anim.SetBool("Is Running", false);
+            anim.SetBool("Is Walking", true);
+        }
+
     }
     void Update(){
+        //Network For Local Players (This will make so that nobody can move the other players player).
+        if (!isLocalPlayer)
+            return;
+
+        //Getting The Input From The Player
         horizontalInput = Input.GetAxis("Horizontal");
         verticalInput = Input.GetAxis("Vertical");
 
-        if(Input.GetKeyDown(KeyCode.C)){
+
+        //Check if the stomp Key is Pressed
+        if(Input.GetMouseButtonDown(1)){
             fastSpeed = stompForce;
             if (speed + fastSpeed < maxSpeed)
             {
@@ -86,8 +132,9 @@ public class PlayerScript : MonoBehaviour
             } else{
                 speed = maxSpeed;
             }
-            readyToStomp = true;            //Uses a bool to register input
+            readyToStomp = true;
         }
+
     }
     void OnCollisionEnter(Collision collider){
         if (collider.collider.CompareTag("Ground")){
