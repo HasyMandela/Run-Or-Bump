@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6721382136837810010
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6721382136837810004}
+  - component: {fileID: 6721382136837810005}
+  m_Layer: 0
+  m_Name: _Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 5721338939258241955, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6721382136837810004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6721382136837810010}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.65, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6721382136837810005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6721382136837810010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fc6fd01aa8e5e7458ac8c67ab2a1fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  explosionForce: 1000
+  radius: 15
+  typesOfPlank:
+  - {fileID: 1746992384509345607, guid: c50b3d363150c7040a8ebb1527090a6e, type: 3}
+  - {fileID: 1581597377232929834, guid: 7b1265f6df3bed543925432fe67d9714, type: 3}
+  - {fileID: 7253285886997137440, guid: 870f913077c57ae4a8be162dc8140841, type: 3}
+  - {fileID: 2971168134796917168, guid: 806ac64349e5e4f418f596cae098c7bd, type: 3}
+  secondsBeforeDespawn: 5
+  maxNumPlanks: 5
+  explosionEffect: {fileID: 1025285306637258, guid: d8f0099df63275647a8bcf646df1ca00,
+    type: 3}
+  instantiatedEffect: {fileID: 0}
